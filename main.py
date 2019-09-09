@@ -24,7 +24,7 @@ class QuestionPool:
             childPaths = os.listdir(path)
             for p in childPaths:
                 self._read_questions(os.path.join(path,p))
-        if os.path.isfile(path):
+        if os.path.isfile(path) and path.endswith('.md'):
             q = Question(None, None, None)
             with open(path, 'r') as f:
                 for x in f:
@@ -38,7 +38,7 @@ class QuestionPool:
                         q.que = x
                         q.ans = ""
                     else:
-                        if x != "\n":
+                        if x != "\n" and x != None and q.ans != None:
                             q.ans += x
                 if q != None:
                     self.questions.append(q)
@@ -63,38 +63,45 @@ class Interview:
         self.ans = []
     
     def go(self):
-        question = self.qp.next_question()
-        print(question)
-        score = self.ask_score()
-        remark = input("请输入一些备注信息，按回车结束： ")
-        self.ans.append(Answer(question, int(score), remark))
-        self.next_step_guide()
+        while True:
+            question = self.qp.next_question()
+            print(question)
+            score = self.ask_score()
+            if score == -1:
+                continue
+            remark = input("请输入一些备注信息，按回车结束： ")
+            self.ans.append(Answer(question, int(score), remark))
+            if self.next_step_guide() == -1:
+                print("end!!!")
+                break
 
     def ask_score(self):
-        score = input("请输入候选人在此题上的得分，输入其他键跳过此题 (1-5)： ")
-        if not score.isdigit():
-            # 有堆栈溢出风险
-            self.go()
-        score = int(score)
-        if score > 5 or score < 1:
-            score = self.ask_score()
-        return score
+        while True:
+            score = input("请输入候选人在此题上的得分，输入其他键跳过此题 (1-5)： ")
+            if score.isdigit():
+                score = int(score)
+                if score <= 5 and score >= 1:
+                    return score
+            else:
+                # 表示跳过此题
+                return -1
 
     def finish(self):
         num_ans = len(self.ans)
         sum_score = sum([a.score for a in self.ans])
         avg_score = sum_score / num_ans
-        print("==================详细信息====================")
+        print("\n\n==================详细信息====================")
         print("候选人共回答 {} 题，总得分 {}，平均得分 {}".format(num_ans, sum_score, avg_score))
         for a in self.ans:
             print(a)
 
     def next_step_guide(self):
-        next_step = input("回车继续，或输入 exit 退出")
+        next_step = input("回车继续，或输入 exit 退出: ")
         if next_step == '':
-            self.go()
+            return 0
         elif next_step == "exit":
             self.finish()
+            return -1
         else:
             self.next_step_guide()
             
